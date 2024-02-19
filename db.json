@@ -1,6 +1,5 @@
 {
- "users":{
-   "results":[
+ "users"[
      {
        "id":1,
        "username": "red",
@@ -17,5 +16,4 @@
        "deck":[11, 22, 33, 44 ,55]
      }
    ]
- }
 }
