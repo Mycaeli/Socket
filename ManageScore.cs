@@ -1,37 +1,67 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
-using TMPro;
-using UnityEngine.SceneManagement;
 using static HttpHandleAuth;
-using static GameCore.Score;
-using GameCore;
 
 public class ManageScore : MonoBehaviour
 {
     string url = "https://sid-restapi.onrender.com";
 
+    public HttpHandleAuth httpHandleAuth;
     private UserJson user;
     private string Token;
 
-    private Score score;
+    private bool isUserInitialized = false;
 
     void Start()
     {
         Token = PlayerPrefs.GetString("token");
-        StartCoroutine(UpdateScore());
+        StartCoroutine(WaitForUserInitialization());
+    }
+
+    IEnumerator WaitForUserInitialization()
+    {
+        while (user == null)
+        {
+            user = httpHandleAuth.AuthenticatedUser;
+            yield return null; // Wait for next frame to recheck
+        }
+
+        isUserInitialized = true; // Set flag to true when user is initialized
+        Debug.Log("Authenticated user data retrieved successfully.");
+        Debug.Log(user.username + " " + user.data.score);
+    }
+
+    public void GetScore(int score)
+    {
+        StartCoroutine(GetScoreCoroutine(score));
+    }
+
+    IEnumerator GetScoreCoroutine(int score)
+    {
+        while (!isUserInitialized)
+        {
+            yield return null; // Wait until user data is initialized
+        }
+
+        StartCoroutine(UpdateScore(score));
     }
 
 
-    IEnumerator UpdateScore()
+    IEnumerator UpdateScore(int score)
     {
+        //yield return new WaitUntil(() => user != null); // Wait until user is not null
 
-        int newScore = GetCurrentScore();
+        if (user.data == null)
+        {
+            Debug.LogError("User or user data is null.");
+            yield break; // exit the coroutine early
+        }
 
-        string jsonData = "{\"score\":" + newScore.ToString() + "}";
+        user.data.score = score;
+        Debug.Log(user.username + " " + user.data.score);
+        string jsonData = JsonUtility.ToJson(user.data);
 
         UnityWebRequest request = UnityWebRequest.Put(url + "/api/usuarios/", jsonData);
         request.method = "PATCH";
@@ -47,19 +77,13 @@ public class ManageScore : MonoBehaviour
         {
             if (request.responseCode == 200)
             {
-                user.data.score = GetCurrentScore();
+                Debug.Log("Score updated successfully.");
             }
             else
             {
 
                 Debug.Log(request.responseCode + "|" + request.error);
             }
-        }
-
-    }
-
-    private int GetCurrentScore()
-    {
-        return score.score;
+        }        
     }
 }

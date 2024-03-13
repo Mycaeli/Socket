@@ -13,14 +13,18 @@ public class HttpHandleAuth : MonoBehaviour
 
     public string Token { get; private set; }
     public string Username { get; private set; }
+    public UserJson AuthenticatedUser { get; private set; }
 
     public GameObject PanelAuth;
     public GameObject PanelMenu;
-    public string sceneName;
+    Scene currentScene;
 
     // Start is called before the first frame update
     void Start()
     {
+        currentScene = SceneManager.GetActiveScene();
+
+        //PlayerPrefs.SetString("token", Token);
         Token = PlayerPrefs.GetString("token");
         if (string.IsNullOrEmpty(Token))
         {
@@ -30,30 +34,39 @@ public class HttpHandleAuth : MonoBehaviour
         else
         {
             Username= PlayerPrefs.GetString("username");
-            StartCoroutine("GetProfile");
+            StartCoroutine(GetProfile());
         }
     }
-    public void OpenScene()
+
+    public UserJson GetAuthenticatedUser()
     {
-        SceneManager.LoadScene(sceneName);
+        return new UserJson
+        {
+            _id = PlayerPrefs.GetString("user_id"),
+            username = PlayerPrefs.GetString("username"),
+            data = new UserData
+            {
+                score = PlayerPrefs.GetInt("score", 0)
+            }
+        };
     }
 
     public void SendRegister()
     {
-        AuthData authData = new AuthData();
+        AuthData authData = new();
         authData.username = GameObject.Find("InputField USERNAME").GetComponent<TMP_InputField>().text;
         authData.password = GameObject.Find("InputField PASSWORD").GetComponent<TMP_InputField>().text;
 
-        StartCoroutine("Register", JsonUtility.ToJson(authData));
+        StartCoroutine(Register(JsonUtility.ToJson(authData)));
     }
 
     public void SendLogIn()
     {
-        AuthData authData = new AuthData();
+        AuthData authData = new();
         authData.username = GameObject.Find("InputField USERNAME").GetComponent<TMP_InputField>().text;
         authData.password = GameObject.Find("InputField PASSWORD").GetComponent<TMP_InputField>().text;
 
-        StartCoroutine("LogIn", JsonUtility.ToJson(authData));
+        StartCoroutine(LogIn(JsonUtility.ToJson(authData)));
     }
 
     IEnumerator Register(string json)
@@ -72,7 +85,7 @@ public class HttpHandleAuth : MonoBehaviour
             if (request.responseCode == 200)
             {
                 Debug.Log("Register Succes");
-                StartCoroutine("LogIn", json);
+                StartCoroutine(LogIn(json));
             }
             else
             {
@@ -105,10 +118,13 @@ public class HttpHandleAuth : MonoBehaviour
                 PlayerPrefs.SetString("username", Username);
 
                 Debug.Log(authData.token);
+                PanelAuth.SetActive(false);
+                PanelMenu.SetActive(true);
 
             }
             else
             {
+                PanelAuth.SetActive(false);
                 Debug.Log(request.responseCode + "|" + request.error);
             }
         }
@@ -130,19 +146,39 @@ public class HttpHandleAuth : MonoBehaviour
             if (request.responseCode == 200)
             {
                 AuthData authData = JsonUtility.FromJson<AuthData>(request.downloadHandler.text);
-
+                AuthenticatedUser = authData.usuario;
                 Debug.Log("Username: " + authData.usuario.username + " is authenticate | user score is: " + authData.usuario.data.score);
 
-                PanelAuth.SetActive(false);
-                PanelMenu.SetActive(true);
+                if (currentScene.name == "_play")
+                {
+                    Debug.Log("Start Scene");
+                    PanelAuth.SetActive(false);
+                    PanelMenu.SetActive(true);
+                }
+                else if (currentScene.name == "GameScene")
+                {
+                    Debug.Log("Game Scene");
+                }
             }
             else
             {
-                PanelAuth.SetActive(false);
                 Debug.Log(request.responseCode + "|" + request.error);
             }
         }
+    }
 
+    public void LogOut()
+    {
+        PlayerPrefs.DeleteKey("token");
+        PlayerPrefs.DeleteKey("username");
+        PlayerPrefs.DeleteKey("user_id");
+        PlayerPrefs.DeleteKey("score");
+
+        Token = null;
+        Username = null;
+        AuthenticatedUser = null;
+
+        SceneManager.LoadScene("_play"); // Replace "LoginScene" with the name of your login scene.
     }
 
     [System.Serializable]
@@ -169,7 +205,7 @@ public class HttpHandleAuth : MonoBehaviour
     [System.Serializable]
     public class UserJsonList 
     {
-        public UserJson[] userList;
+        public UserJson[] usuarios;
     }
 }
 
