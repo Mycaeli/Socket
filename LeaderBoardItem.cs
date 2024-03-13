@@ -12,23 +12,20 @@ public class LeaderBoardItem : MonoBehaviour
 
     public TMP_Text TxtUsername;
     public TMP_Text TxtScore;
+    public RectTransform rectTransform;
 
-    public void SetItem(UserJson user, int position)
+    public void SetItem(UserJson user, int index)
     {
         TxtUsername.text = user.username;
         TxtScore.text = "" + user.data.score;
 
-        transform.position = new Vector3(transform.position.x, 100 - (position * 100), 0);
+        rectTransform.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top,100 * index, rectTransform.rect.height);
+
+
     }
 
-    void Start()
+    public void Deactivate()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        gameObject.SetActive(false);
     }
 }
