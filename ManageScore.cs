@@ -58,10 +58,12 @@ public class ManageScore : MonoBehaviour
             Debug.LogError("User or user data is null.");
             yield break; // exit the coroutine early
         }
-
-        user.data.score = score;
+        if(score >= user.data.score)
+        {
+            user.data.score = score;
+        }
         Debug.Log(user.username + " " + user.data.score);
-        string jsonData = JsonUtility.ToJson(user.data);
+        string jsonData = JsonUtility.ToJson(user);
 
         UnityWebRequest request = UnityWebRequest.Put(url + "/api/usuarios/", jsonData);
         request.method = "PATCH";
